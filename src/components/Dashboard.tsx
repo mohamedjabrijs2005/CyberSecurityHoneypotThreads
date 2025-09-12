@@ -42,7 +42,7 @@ const Dashboard: React.FC = () => {
         if (statsRes.ok) setStats(await statsRes.json());
         if (alertsRes.ok) setAlerts(await alertsRes.json());
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        // Silently handle backend connection failure and use mock data
         // Fallback to mock data if backend is not available
         const { getActivityLogs, getThreatStats, getRecentAlerts } = await import('../utils/mockData');
         setLogs(getActivityLogs());
