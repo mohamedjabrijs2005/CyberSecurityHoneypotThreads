@@ -17,9 +17,9 @@ function App() {
           <Shield className="w-4 h-4" />
           {currentView === 'decoy' ? 'Admin' : 'Decoy'}
         </button>
-      </div>
+      </div>;
 
-      {currentView === 'decoy' ? <LoginDecoy /> : <Dashboard />}
+      {currentView === 'decoy' ? <LoginDecoy /> : <Dashboard />} ;
     </div>
   );
 }
