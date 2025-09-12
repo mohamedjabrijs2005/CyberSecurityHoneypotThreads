@@ -52,13 +52,23 @@ const LoginDecoy: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+    <div className="min-h-screen login-container flex items-center justify-center p-4">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+      <div className="floating-particles">
+        <div className="particle"></div>
+        <div className="particle"></div>
+        <div className="particle"></div>
+        <div className="particle"></div>
+        <div className="particle"></div>
+        <div className="particle"></div>
+        <div className="particle"></div>
+        <div className="particle"></div>
+        <div className="particle"></div>
+      </div>
       
       <div className="w-full max-w-md relative">
         {/* Main Login Card */}
-        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="login-card rounded-2xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-8 py-6 text-center">
             <div className="flex items-center justify-center mb-3">
@@ -74,7 +84,7 @@ const LoginDecoy: React.FC = () => {
           <div className="px-8 py-8">
             <div className="text-center mb-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-2">Welcome Back</h2>
-              <p className="text-gray-600 text-sm">Please sign in to your account</p>
+              <p className="text-gray-600 text-sm gradient-text">Please sign in to your account</p>
             </div>
 
             {/* Error Message */}
@@ -102,7 +112,7 @@ const LoginDecoy: React.FC = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="enhanced-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter your email"
                     required
                   />
@@ -124,7 +134,7 @@ const LoginDecoy: React.FC = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="enhanced-input w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter your password"
                     required
                   />
@@ -164,11 +174,11 @@ const LoginDecoy: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="enhanced-button w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <div className="enhanced-spinner"></div>
                     Signing in...
                   </>
                 ) : (
@@ -209,24 +219,24 @@ const LoginDecoy: React.FC = () => {
 
         {/* Security Notice */}
         <div className="mt-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+          <div className="inline-flex items-center gap-2 px-4 py-2 glass-effect rounded-lg">
             <Shield className="w-4 h-4 text-green-600" />
-            <span className="text-sm text-green-700 font-medium">Secured with 256-bit SSL encryption</span>
+            <span className="text-sm text-white font-medium">Secured with 256-bit SSL encryption</span>
           </div>
         </div>
 
         {/* Additional Trust Indicators */}
-        <div className="mt-4 flex items-center justify-center gap-6 text-xs text-gray-500">
+        <div className="mt-4 flex items-center justify-center gap-6 text-xs text-white/80">
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-green-400 rounded-full security-pulse"></div>
             <span>System Online</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-blue-400 rounded-full security-pulse"></div>
             <span>Multi-Factor Auth</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-purple-400 rounded-full security-pulse"></div>
             <span>SOC 2 Compliant</span>
           </div>
         </div>
