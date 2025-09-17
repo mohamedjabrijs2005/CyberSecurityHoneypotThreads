@@ -1,5 +1,5 @@
-const database = require('../config/database');
-const bcrypt = require('bcrypt');
+import database from '../config/database.js';
+import bcrypt from 'bcrypt';
 
 // Seed script for demo/test data
 async function seedDatabase() {
@@ -125,14 +125,12 @@ async function seedDatabase() {
 
   } catch (error) {
     console.error('❌ Error seeding database:', error);
+  } finally {
+    database.close();
   }
 }
 
 // Run seeding if called directly
-if (require.main === module) {
-  seedDatabase().then(() => {
-    process.exit(0);
-  });
-}
+seedDatabase();
 
-module.exports = { seedDatabase };
+export { seedDatabase };

@@ -1,5 +1,9 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+import sqlite3 from 'sqlite3';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class Database {
   constructor() {
@@ -9,7 +13,7 @@ class Database {
 
   init() {
     const dbPath = path.join(__dirname, '../data/honeypot.db');
-    this.db = new sqlite3.Database(dbPath, (err) => {
+    this.db = new (sqlite3.verbose().Database)(dbPath, (err) => {
       if (err) {
         console.error('Error opening database:', err.message);
       } else {
@@ -175,9 +179,10 @@ class Database {
 
   // IP tracking methods
   updateIPTracking(ip_address, success = false) {
+    const that = this;
     return new Promise((resolve, reject) => {
       // First, try to update existing record
-      this.db.run(`
+      that.db.run(`
         UPDATE ip_tracking 
         SET last_seen = CURRENT_TIMESTAMP,
             attempt_count = attempt_count + 1,
@@ -189,7 +194,7 @@ class Database {
           reject(err);
         } else if (this.changes === 0) {
           // Insert new record if none exists
-          const stmt = this.db.prepare(`
+          const stmt = that.db.prepare(`
             INSERT INTO ip_tracking (ip_address, failed_attempts, success_attempts)
             VALUES (?, ?, ?)
           `);
@@ -242,11 +247,24 @@ class Database {
     });
   }
 
-  close() {
-    if (this.db) {
-      this.db.close();
-    }
+  async close() {
+    return new Promise((resolve, reject) => {
+        if (this.db) {
+            this.db.close((err) => {
+                if (err) {
+                    console.error('Error closing database', err);
+                    reject(err);
+                } else {
+                    console.log('Database connection closed.');
+                    resolve();
+                }
+            });
+        } else {
+            resolve();
+        }
+    });
   }
 }
 
-module.exports = new Database();
+const instance = new Database();
+export default instance;
