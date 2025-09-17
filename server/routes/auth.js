@@ -1,8 +1,8 @@
-const express = require('express');
-const passport = require('passport');
-const database = require('../config/database');
-const threatAnalyzer = require('../services/threatAnalyzer');
-const { rateLimiters, validationSchemas, handleValidationErrors } = require('../middleware/security');
+import express from 'express';
+import passport from 'passport';
+import database from '../config/database.js';
+import threatAnalyzer from '../services/threatAnalyzer.js';
+import { rateLimiters, validationSchemas, handleValidationErrors } from '../middleware/security.js';
 
 const router = express.Router();
 
@@ -164,4 +164,4 @@ router.post('/logout', (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;

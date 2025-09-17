@@ -1,6 +1,6 @@
-const rateLimit = require('express-rate-limit');
-const helmet = require('helmet');
-const { body, validationResult } = require('express-validator');
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import { body, validationResult } from 'express-validator';
 
 // Rate limiting configurations
 const createRateLimiter = (windowMs, max, message) => {
@@ -17,7 +17,7 @@ const createRateLimiter = (windowMs, max, message) => {
 };
 
 // Different rate limits for different endpoints
-const rateLimiters = {
+export const rateLimiters = {
   // Strict rate limiting for login attempts (honeypot behavior)
   login: createRateLimiter(
     15 * 60 * 1000, // 15 minutes
@@ -41,7 +41,7 @@ const rateLimiters = {
 };
 
 // Input validation schemas
-const validationSchemas = {
+export const validationSchemas = {
   login: [
     body('email')
       .isEmail()
@@ -65,7 +65,7 @@ const validationSchemas = {
 };
 
 // Validation error handler
-const handleValidationErrors = (req, res, next) => {
+export const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -77,7 +77,7 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 // Security headers configuration
-const securityHeaders = helmet({
+export const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -100,7 +100,7 @@ const securityHeaders = helmet({
 });
 
 // IP extraction middleware
-const extractClientIP = (req, res, next) => {
+export const extractClientIP = (req, res, next) => {
   // Get real IP address considering proxies
   const forwarded = req.headers['x-forwarded-for'];
   const realIP = req.headers['x-real-ip'];
@@ -115,7 +115,7 @@ const extractClientIP = (req, res, next) => {
 };
 
 // Request logging middleware
-const requestLogger = (req, res, next) => {
+export const requestLogger = (req, res, next) => {
   const startTime = Date.now();
   
   // Log request
@@ -131,7 +131,7 @@ const requestLogger = (req, res, next) => {
 };
 
 // Suspicious activity detector
-const detectSuspiciousActivity = (req, res, next) => {
+export const detectSuspiciousActivity = (req, res, next) => {
   const suspiciousPatterns = [
     // Common attack patterns in URLs
     /\.\.[\/\\]/,
@@ -168,7 +168,7 @@ const detectSuspiciousActivity = (req, res, next) => {
 };
 
 // CORS configuration for honeypot
-const corsOptions = {
+export const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests from frontend and common testing tools
     const allowedOrigins = [
@@ -192,15 +192,4 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-};
-
-module.exports = {
-  rateLimiters,
-  validationSchemas,
-  handleValidationErrors,
-  securityHeaders,
-  extractClientIP,
-  requestLogger,
-  detectSuspiciousActivity,
-  corsOptions
 };

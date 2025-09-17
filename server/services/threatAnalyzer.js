@@ -1,11 +1,11 @@
-const database = require('../config/database');
-const alertService = require('./alertService');
+import database from '../config/database.js';
+import alertService from './alertService.js';
 
 class ThreatAnalyzer {
   constructor() {
     this.suspiciousPatterns = {
       sqlInjection: [
-        /('|(\\')|(;)|(\\;)|(--)|(\s*(union|select|insert|delete|update|drop|create|alter|exec|execute)\s+)/i,
+        /('|;|--|\b(union|select|insert|delete|update|drop|create|alter|exec|execute)\b)/i,
         /((\%27)|(\'))\s*((\%6F)|o|(\%4F))\s*((\%72)|r|(\%52))/i,
         /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i
       ],
@@ -292,4 +292,4 @@ class ThreatAnalyzer {
   }
 }
 
-module.exports = new ThreatAnalyzer();
+export default new ThreatAnalyzer();

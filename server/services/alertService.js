@@ -1,5 +1,6 @@
-const twilio = require('twilio');
-require('dotenv').config();
+import twilio from 'twilio';
+import dotenv from 'dotenv';
+dotenv.config();
 
 class AlertService {
   constructor() {
@@ -129,17 +130,7 @@ class AlertService {
       'low': 'ℹ️'
     };
 
-    return `${severityEmoji[severity]} HONEYPOT ALERT
-
-${title}
-
-Details: ${description}
-Severity: ${severity.toUpperCase()}
-IP Address: ${ip_address || 'Unknown'}
-Email: ${email || 'N/A'}
-Time: ${timestamp}
-
-This is an automated security alert from your honeypot system.`;
+    return `${severityEmoji[severity]} HONEYPOT ALERT\n\n${title}\n\nDetails: ${description}\nSeverity: ${severity.toUpperCase()}\nIP Address: ${ip_address || 'Unknown'}\nEmail: ${email || 'N/A'}\nTime: ${timestamp}\n\nThis is an automated security alert from your honeypot system.`;
   }
 
   logAlert(alertData, message) {
@@ -195,4 +186,4 @@ This is an automated security alert from your honeypot system.`;
   }
 }
 
-module.exports = new AlertService();
+export default new AlertService();

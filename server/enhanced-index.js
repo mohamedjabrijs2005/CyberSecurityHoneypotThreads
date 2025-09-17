@@ -1,27 +1,28 @@
-const express = require('express');
-const cors = require('cors');
-const session = require('express-session');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const LinkedInStrategy = require('passport-linkedin-oauth2').Strategy;
-const FacebookStrategy = require('passport-facebook').Strategy;
-const winston = require('winston');
-const cron = require('node-cron');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import session from 'express-session';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { Strategy as LinkedInStrategy } from 'passport-linkedin-oauth2';
+import { Strategy as FacebookStrategy } from 'passport-facebook';
+import winston from 'winston';
+import cron from 'node-cron';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Import our modules
-const database = require('./config/database');
-const threatAnalyzer = require('./services/threatAnalyzer');
-const alertService = require('./services/alertService');
-const authRoutes = require('./routes/auth');
-const apiRoutes = require('./routes/api');
-const { 
+import database from './config/database.js';
+import threatAnalyzer from './services/threatAnalyzer.js';
+import alertService from './services/alertService.js';
+import authRoutes from './routes/auth.js';
+import apiRoutes from './routes/api.js';
+import { 
   securityHeaders, 
   extractClientIP, 
   requestLogger, 
   detectSuspiciousActivity,
   corsOptions 
-} = require('./middleware/security');
+} from './middleware/security.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -203,7 +204,7 @@ app.use((error, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   // Log 404 attempts as potential reconnaissance
   const activityData = {
     type: 'Path Reconnaissance',
@@ -293,4 +294,4 @@ app.listen(PORT, () => {
   });
 });
 
-module.exports = app;
+export default app;

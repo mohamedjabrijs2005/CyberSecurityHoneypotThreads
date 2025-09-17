@@ -1,7 +1,7 @@
-const express = require('express');
-const database = require('../config/database');
-const alertService = require('../services/alertService');
-const { rateLimiters } = require('../middleware/security');
+import express from 'express';
+import database from '../config/database.js';
+import alertService from '../services/alertService.js';
+import { rateLimiters } from '../middleware/security.js';
 
 const router = express.Router();
 
@@ -250,4 +250,4 @@ router.put('/alerts/:id/resolve', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

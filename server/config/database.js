@@ -1,270 +1,224 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const dbPath = process.env.DATABASE_PATH || './honeypot.db';
 
-class Database {
-  constructor() {
-    this.db = null;
-    this.init();
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('❌ Could not connect to database', err.message);
+  } else {
+    console.log('✅ Connected to the honeypot database');
+    initializeDatabase();
   }
+});
 
-  init() {
-    const dbPath = path.join(__dirname, '../data/honeypot.db');
-    this.db = new (sqlite3.verbose().Database)(dbPath, (err) => {
+const initializeDatabase = () => {
+  const createTablesSQL = `
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      email TEXT,
+      password TEXT, -- Note: Storing plaintext passwords is for honeypot purposes only!
+      ip_address TEXT,
+      user_agent TEXT,
+      provider TEXT,
+      profile_id TEXT,
+      success BOOLEAN,
+      severity TEXT DEFAULT 'low',
+      payload TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS alerts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      severity TEXT NOT NULL,
+      reason_code TEXT,
+      ip_address TEXT,
+      email TEXT,
+      resolved BOOLEAN DEFAULT FALSE,
+      alert_sent BOOLEAN DEFAULT FALSE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE TABLE IF NOT EXISTS ip_tracking (
+      ip_address TEXT PRIMARY KEY,
+      first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+      failed_attempts INTEGER DEFAULT 0,
+      successful_attempts INTEGER DEFAULT 0,
+      country TEXT,
+      is_blacklisted BOOLEAN DEFAULT FALSE
+    );
+  `;
+  
+  db.exec(createTablesSQL, (err) => {
+    if (err) {
+      console.error('❌ Error creating tables:', err.message);
+    } else {
+      console.log('✔️  Database tables checked/created successfully');
+    }
+  });
+};
+
+const logActivity = (data) => {
+  return new Promise((resolve, reject) => {
+    const { 
+      type, email, password, ip_address, user_agent, 
+      provider, profile_id, success, severity, payload
+    } = data;
+    
+    const sql = `
+      INSERT INTO activity_logs 
+      (type, email, password, ip_address, user_agent, provider, profile_id, success, severity, payload)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [
+      type, email, password, ip_address, user_agent,
+      provider, profile_id, success, severity, payload
+    ], function(err) {
       if (err) {
-        console.error('Error opening database:', err.message);
+        console.error('Database log error:', err);
+        reject(err);
       } else {
-        console.log('Connected to SQLite database');
-        this.createTables();
+        resolve({ id: this.lastID });
       }
     });
-  }
+  });
+};
 
-  createTables() {
-    // Activity logs table
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS activity_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        type TEXT NOT NULL,
-        email TEXT,
-        password_hash TEXT,
-        ip_address TEXT,
-        user_agent TEXT,
-        success BOOLEAN DEFAULT FALSE,
-        provider TEXT,
-        profile_id TEXT,
-        payload TEXT,
-        severity TEXT DEFAULT 'low',
-        country TEXT,
-        city TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+const createAlert = (data) => {
+  return new Promise((resolve, reject) => {
+    const {
+      title, description, severity, reason_code,
+      ip_address, email
+    } = data;
 
-    // Alerts table
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS alerts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        severity TEXT NOT NULL,
-        reason_code TEXT,
-        ip_address TEXT,
-        email TEXT,
-        alert_sent BOOLEAN DEFAULT FALSE,
-        resolved BOOLEAN DEFAULT FALSE,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    const sql = `
+      INSERT INTO alerts 
+      (title, description, severity, reason_code, ip_address, email)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
 
-    // IP tracking table for behavioral analysis
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS ip_tracking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ip_address TEXT UNIQUE,
-        first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
-        last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
-        attempt_count INTEGER DEFAULT 1,
-        failed_attempts INTEGER DEFAULT 0,
-        success_attempts INTEGER DEFAULT 0,
-        is_blocked BOOLEAN DEFAULT FALSE,
-        country TEXT,
-        city TEXT,
-        threat_score INTEGER DEFAULT 0
-      )
-    `);
-
-    // Dashboard users table (for admin access)
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS dashboard_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT DEFAULT 'admin',
-        last_login DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    console.log('Database tables created successfully');
-  }
-
-  // Activity logging methods
-  logActivity(data) {
-    return new Promise((resolve, reject) => {
-      const {
-        type, email, password, ip_address, user_agent, 
-        success = false, provider, profile_id, payload, severity = 'low'
-      } = data;
-
-      const stmt = this.db.prepare(`
-        INSERT INTO activity_logs 
-        (type, email, password_hash, ip_address, user_agent, success, provider, profile_id, payload, severity)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      // Hash password for logging (first 3 chars + asterisks)
-      const passwordHash = password ? password.slice(0, 3) + '*'.repeat(Math.max(0, password.length - 3)) : null;
-
-      stmt.run([type, email, passwordHash, ip_address, user_agent, success, provider, profile_id, payload, severity], 
-        function(err) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(this.lastID);
-          }
-        });
-      stmt.finalize();
+    db.run(sql, [title, description, severity, reason_code, ip_address, email], function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.lastID);
+      }
     });
-  }
+  });
+};
 
-  // Get recent activity logs
-  getActivityLogs(limit = 50, offset = 0) {
-    return new Promise((resolve, reject) => {
-      this.db.all(`
-        SELECT * FROM activity_logs 
-        ORDER BY created_at DESC 
-        LIMIT ? OFFSET ?
-      `, [limit, offset], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
-  }
-
-  // Alert methods
-  createAlert(data) {
-    return new Promise((resolve, reject) => {
-      const { title, description, severity, reason_code, ip_address, email } = data;
+const getStats = () => {
+  return new Promise((resolve, reject) => {
+    const stats = {};
+    db.get('SELECT COUNT(*) as total FROM activity_logs', (err, row) => {
+      if (err) return reject(err);
+      stats.total_events = row.total;
       
-      const stmt = this.db.prepare(`
-        INSERT INTO alerts (title, description, severity, reason_code, ip_address, email)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
-
-      stmt.run([title, description, severity, reason_code, ip_address, email], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.lastID);
-        }
-      });
-      stmt.finalize();
-    });
-  }
-
-  // Get recent alerts
-  getAlerts(limit = 20, offset = 0) {
-    return new Promise((resolve, reject) => {
-      this.db.all(`
-        SELECT * FROM alerts 
-        ORDER BY created_at DESC 
-        LIMIT ? OFFSET ?
-      `, [limit, offset], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
-  }
-
-  // IP tracking methods
-  updateIPTracking(ip_address, success = false) {
-    const that = this;
-    return new Promise((resolve, reject) => {
-      // First, try to update existing record
-      that.db.run(`
-        UPDATE ip_tracking 
-        SET last_seen = CURRENT_TIMESTAMP,
-            attempt_count = attempt_count + 1,
-            failed_attempts = failed_attempts + ?,
-            success_attempts = success_attempts + ?
-        WHERE ip_address = ?
-      `, [success ? 0 : 1, success ? 1 : 0, ip_address], function(err) {
-        if (err) {
-          reject(err);
-        } else if (this.changes === 0) {
-          // Insert new record if none exists
-          const stmt = that.db.prepare(`
-            INSERT INTO ip_tracking (ip_address, failed_attempts, success_attempts)
-            VALUES (?, ?, ?)
-          `);
-          stmt.run([ip_address, success ? 0 : 1, success ? 1 : 0], function(err) {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(this.lastID);
-            }
-          });
-          stmt.finalize();
-        } else {
-          resolve(this.changes);
-        }
-      });
-    });
-  }
-
-  // Get statistics
-  getStats() {
-    return new Promise((resolve, reject) => {
-      const queries = [
-        'SELECT COUNT(*) as total_attempts FROM activity_logs',
-        'SELECT COUNT(DISTINCT ip_address) as unique_ips FROM activity_logs WHERE ip_address IS NOT NULL',
-        'SELECT COUNT(*) as social_logins FROM activity_logs WHERE provider IS NOT NULL',
-        'SELECT COUNT(*) as failed_logins FROM activity_logs WHERE success = FALSE',
-        'SELECT COUNT(*) as high_alerts FROM alerts WHERE severity = "high"',
-        'SELECT COUNT(*) as total_alerts FROM alerts',
-        'SELECT COUNT(*) as recent_alerts FROM alerts WHERE created_at > datetime("now", "-24 hours")'
-      ];
-
-      Promise.all(queries.map(query => 
-        new Promise((resolve, reject) => {
-          this.db.get(query, (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          });
-        })
-      )).then(results => {
-        resolve({
-          totalAttempts: results[0].total_attempts || 0,
-          uniqueIPs: results[1].unique_ips || 0,
-          socialLogins: results[2].social_logins || 0,
-          failedLogins: results[3].failed_logins || 0,
-          highAlerts: results[4].high_alerts || 0,
-          totalAlerts: results[5].total_alerts || 0,
-          recentAlerts: results[6].recent_alerts || 0
+      db.get(`
+        SELECT COUNT(*) as failed 
+        FROM activity_logs 
+        WHERE success = FALSE
+      `, (err, row) => {
+        if (err) return reject(err);
+        stats.failed_logins = row.failed;
+        
+        db.get(`
+          SELECT COUNT(DISTINCT ip_address) as unique_attackers 
+          FROM activity_logs 
+          WHERE success = FALSE
+        `, (err, row) => {
+          if (err) return reject(err);
+          stats.unique_attackers = row.unique_attackers;
+          resolve(stats);
         });
-      }).catch(reject);
+      });
     });
-  }
+  });
+};
 
-  async close() {
-    return new Promise((resolve, reject) => {
-        if (this.db) {
-            this.db.close((err) => {
-                if (err) {
-                    console.error('Error closing database', err);
-                    reject(err);
-                } else {
-                    console.log('Database connection closed.');
-                    resolve();
-                }
-            });
-        } else {
-            resolve();
-        }
+const updateIPTracking = async (ip_address, success) => {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM ip_tracking WHERE ip_address = ?', [ip_address], (err, row) => {
+      if (err) return reject(err);
+
+      const updateSQL = success ? 
+        `successful_attempts = successful_attempts + 1` : 
+        `failed_attempts = failed_attempts + 1`;
+
+      if (row) {
+        // Update existing IP
+        db.run(`
+          UPDATE ip_tracking 
+          SET last_seen = CURRENT_TIMESTAMP, ${updateSQL} 
+          WHERE ip_address = ?
+        `, [ip_address], (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      } else {
+        // Insert new IP
+        db.run(`
+          INSERT INTO ip_tracking 
+          (ip_address, ${success ? 'successful_attempts' : 'failed_attempts'})
+          VALUES (?, 1)
+        `, [ip_address], (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      }
     });
-  }
-}
+  });
+};
 
-const instance = new Database();
-export default instance;
+const getActivityLogs = (limit = 50, offset = 0) => {
+  return new Promise((resolve, reject) => {
+    db.all(`
+      SELECT * FROM activity_logs 
+      ORDER BY created_at DESC 
+      LIMIT ? OFFSET ?
+    `, [limit, offset], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+};
+
+const getAlerts = (limit = 20, offset = 0) => {
+  return new Promise((resolve, reject) => {
+    db.all(`
+      SELECT * FROM alerts 
+      ORDER BY created_at DESC 
+      LIMIT ? OFFSET ?
+    `, [limit, offset], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+};
+
+const close = () => {
+  db.close((err) => {
+    if (err) {
+      console.error(err.message);
+    } else {
+      console.log('Database connection closed.');
+    }
+  });
+};
+
+export default {
+  db,
+  initializeDatabase,
+  logActivity,
+  createAlert,
+  getStats,
+  getActivityLogs,
+  getAlerts,
+  updateIPTracking,
+  close
+};
