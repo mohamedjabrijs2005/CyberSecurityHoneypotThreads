@@ -189,7 +189,7 @@ class Database {
           reject(err);
         } else if (this.changes === 0) {
           // Insert new record if none exists
-          const stmt = db.prepare(`
+          const stmt = this.db.prepare(`
             INSERT INTO ip_tracking (ip_address, failed_attempts, success_attempts)
             VALUES (?, ?, ?)
           `);
